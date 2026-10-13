@@ -6,26 +6,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Wracamy do latest, bo projekt twardo wymusza wersje >= 5.5.2
     container: espressif/idf:latest 
 
     steps:
-      - name: Pobieranie kodu
+      - name: Pobieranie repozytorium
         uses: actions/checkout@v4
         with:
           submodules: recursive 
 
-      - name: Obejscie bledu rejestru (Pobieranie reczne)
+      - name: Przygotowanie niezaleznych komponentow (Brute Force)
         run: |
           mkdir -p firmware/components
           
-          # To zadzialalo w probie 5:
-          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
+          # Usuwamy oryginalne (byc moze uszkodzone) wiazania submodules
+          rm -rf firmware/components/*
           
-          # Tego zabraklo w probie 5:
+          # Pobieramy to, czego szukal CMake i wywalal bledy
+          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
           git clone --depth 1 https://github.com/espressif/esp-now.git firmware/components/esp-now
           
-          # Usuwamy stare pliki blokady, zeby CMake nie szukal tych paczek w sieci
+          # Tu pojawil sie blad z ostatniej proby - zrodlo autorskiego Mooncake'a 
+          git clone https://github.com/m5stack/mooncake.git firmware/components/mooncake
+          
+          # Pobieramy dodatkowe frameworki UI od twórcow, by uprzedzic nastepny ewentualny blad
+          git clone https://github.com/m5stack/smooth_ui_toolkit.git firmware/components/smooth_ui_toolkit
+
+          # Kasowanie lockow
           find . -name "dependencies.lock" -type f -delete
 
       - name: Kompilacja Firmware'u
