@@ -1,33 +1,37 @@
 name: Build StackChan ESP-IDF
 
 on:
-  workflow_dispatch: # To pozwala na ręczne uruchomienie przyciskiem "Run workflow"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Używamy oficjalnego kontenera Espressif (CoreS3 to układ ESP32-S3)
     container: espressif/idf:latest 
 
     steps:
       - name: Pobieranie repozytorium
         uses: actions/checkout@v4
         with:
-          # BARDZO WAŻNE: M5Stack uzywa zewnetrznych bibliotek (Mooncake, LVGL), to pobierze je wszystkie
           submodules: recursive 
 
-      - name: Kompilacja Firmware'u
+      - name: Przygotowanie srodowiska i kompilacja
         run: |
           . /opt/esp/idf/export.sh
           
-          # Przechodzimy do folderu 
           cd firmware 
           
-          # Dodajemy brakujacy komponent ArduinoJson do projektu!
-          idf.py add-dependency "bblanchon/ArduinoJson^7.0.4"
+          # Tworzymy folder main jesli z jakiegos powodu system operuje gdzies indziej
+          mkdir -p main
           
-          # Ustawiamy układ na CoreS3 (ESP32-S3) i budujemy
+          # Wymuszamy dodanie paczki do manifestu glownego komponentu przed konfiguracja
+          cd main
+          idf.py add-dependency "bblanchon/ArduinoJson^7.0.4"
+          cd ..
+          
+          # Teraz mozna bezpiecznie ustawic target
           idf.py set-target esp32s3
+          
+          # Uruchamiamy kompilacje
           idf.py build
 
       - name: Udostepnienie gotowego pliku
