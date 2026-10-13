@@ -14,30 +14,65 @@ jobs:
         with:
           submodules: recursive 
 
-      - name: Przygotowanie brakujacych komponentow autorskich (lokalnie)
+      - name: Instalacja prywatnych repozytoriow (Lokalnie)
         run: |
           mkdir -p firmware/components
           rm -rf firmware/components/*
           
           git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
           git clone --depth 1 https://github.com/espressif/esp-now.git firmware/components/esp-now
-          
           git clone --depth 1 https://github.com/Forairaaaaa/mooncake.git firmware/components/mooncake
           git clone --depth 1 https://github.com/Forairaaaaa/smooth_ui_toolkit.git firmware/components/smooth_ui_toolkit
           git clone --depth 1 https://github.com/Forairaaaaa/mooncake_log.git firmware/components/mooncake_log
-
           find . -name "dependencies.lock" -type f -delete
 
-      - name: Uzupelnianie podstawowych braku rdzenia (MQTT / ESP-IDF 6.0)
+      - name: Automatyczne rozwiazywanie zaleznosci i kompilacja (Skrypt samonaprawczy)
         run: |
           . /opt/esp/idf/export.sh
           cd firmware 
           
-          # Oficjalne pakiety z nowymi nazwami dla ESP-IDF v6
-          idf.py add-dependency "espressif/mqtt^1.0.0"
-          idf.py add-dependency "espressif/cjson^1.7.17"
+          # Definiujemy maksymalna ilosc petli naprawczych zeby system nie zawisl
+          MAX_RETRIES=10
+          RETRY_COUNT=0
+          SUCCESS=0
           
-          idf.py set-target esp32s3
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "==== PRÓBA KONFIGURACJI: $RETRY_COUNT ===="
+            
+            # Odpalamy konfiguracje, zbierajac bledy do pliku
+            idf.py reconfigure > cmake_output.txt 2>&1
+            
+            # Sprawdzamy czy konfiguracja (CMake) przeszła pomyślnie
+            if grep -q "Build files have been written to" cmake_output.txt || grep -q "Generating done" cmake_output.txt; then
+              echo "Konfiguracja przebiegla pomyslnie! Przechodze do budowy."
+              SUCCESS=1
+              break
+            fi
+            
+            # Jesli byl blad, szukamy brakujacego komponentu
+            # Szuka frazy: Failed to resolve component 'NAZWA'
+            MISSING_COMP=$(grep -oP "Failed to resolve component '\K[^']+" cmake_output.txt | head -n 1)
+            
+            if [ -n "$MISSING_COMP" ]; then
+              echo "Wykryto brakujacy komponent: $MISSING_COMP. Probuje go dodac..."
+              # Dodajemy prefix espressif/, bo 99% usuniętych z rdzenia paczek tam trafia w v6
+              idf.py add-dependency "espressif/$MISSING_COMP"
+              RETRY_COUNT=$((RETRY_COUNT+1))
+            else
+              echo "Krytyczny blad budowania - nie mozna odnalezc nazwy brakujacego pakietu."
+              cat cmake_output.txt
+              exit 1
+            fi
+          done
+          
+          if [ $SUCCESS -eq 0 ]; then
+            echo "Przekroczono limit prób naprawy. Zobacz pelny log z ostatniej proby:"
+            cat cmake_output.txt
+            exit 1
+          fi
+          
+          echo "==== ROZPOCZYNAM WLASCIEWA KOMPILACJE ===="
+          # Skoro reconfigure dziala, target to automatycznie esp32s3
           idf.py build
 
       - name: Udostepnienie gotowego pliku
