@@ -6,24 +6,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Używamy starszej i precyzyjnie dobranej wersji kompilatora - 5.1.2 (zawiera wbudowane esp-now)
-    container: espressif/idf:release-v5.1 
+    # Wracamy do latest, bo projekt twardo wymusza wersje >= 5.5.2
+    container: espressif/idf:latest 
 
     steps:
-      - name: Pobieranie repozytorium
+      - name: Pobieranie kodu
         uses: actions/checkout@v4
         with:
           submodules: recursive 
+
+      - name: Obejscie bledu rejestru (Pobieranie reczne)
+        run: |
+          mkdir -p firmware/components
+          
+          # To zadzialalo w probie 5:
+          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
+          
+          # Tego zabraklo w probie 5:
+          git clone --depth 1 https://github.com/espressif/esp-now.git firmware/components/esp-now
+          
+          # Usuwamy stare pliki blokady, zeby CMake nie szukal tych paczek w sieci
+          find . -name "dependencies.lock" -type f -delete
 
       - name: Kompilacja Firmware'u
         run: |
           . /opt/esp/idf/export.sh
           cd firmware 
           
-          # Skrypt ustawi urządzenie na esp32s3
           idf.py set-target esp32s3
-          
-          # Budujemy wszystko
           idf.py build
 
       - name: Udostepnienie gotowego pliku
