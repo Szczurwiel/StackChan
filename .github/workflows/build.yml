@@ -6,31 +6,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: espressif/idf:latest 
+    # Używamy starszej i precyzyjnie dobranej wersji kompilatora - 5.1.2 (zawiera wbudowane esp-now)
+    container: espressif/idf:release-v5.1 
 
     steps:
-      - name: Pobieranie kodu
+      - name: Pobieranie repozytorium
         uses: actions/checkout@v4
         with:
           submodules: recursive 
-
-      - name: Obejscie bledu (lokalne pobranie ArduinoJson)
-        run: |
-          # Tworzymy folder na wlasne komponenty ESP-IDF
-          mkdir -p firmware/components
-          
-          # Pobieramy biblioteke bezposrednio z GitHuba, omijajac uszkodzony menedzer pakietow
-          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
 
       - name: Kompilacja Firmware'u
         run: |
           . /opt/esp/idf/export.sh
           cd firmware 
           
-          # Usuwamy plik blokady menedzera pakietow, by nie szukal starych wpisow
-          rm -f dependencies.lock
-          
+          # Skrypt ustawi urządzenie na esp32s3
           idf.py set-target esp32s3
+          
+          # Budujemy wszystko
           idf.py build
 
       - name: Udostepnienie gotowego pliku
