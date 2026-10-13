@@ -10,6 +10,9 @@
 #include <apps/apps.h>
 #include <hal/hal.h>
 
+// [DODANE] Podłączenie naszego małego pliku 
+#include "light_sensor.h"
+
 using namespace mooncake;
 using namespace smooth_ui_toolkit;
 
@@ -21,6 +24,9 @@ extern "C" void app_main(void)
 
     // HAL init
     GetHAL().init();
+
+    // [DODANE] Uruchomienie czujnika od razu po starcie sprzętu
+    init_light_sensor();
 
     // Setup ui hal
     ui_hal::on_delay([](uint32_t ms) { GetHAL().delay(ms); });
@@ -47,6 +53,9 @@ extern "C" void app_main(void)
 
             GetMooncake().update();
 
+            // [DODANE] Odczyt światła przy każdym obiegu głównej pętli
+            handle_auto_brightness();
+
             if (GetHAL().isXiaozhiStartRequested()) {
                 break;
             }
@@ -58,5 +67,7 @@ extern "C" void app_main(void)
     }
 
     // Start xiaozhi, never returns
+    // [UWAGA]: Kiedy system wejdzie w tryb Xiaozhi (asystent AI), opuszcza glówną pętlę z "handle_auto_brightness()". 
+    // Jeśli asystent ma wlasna pętle w "startXiaozhi()", tam auto-jasnosc moze nie dzialac.
     GetHAL().startXiaozhi();
 }
