@@ -1,4 +1,4 @@
-name: Build StackChan ESP-IDF
+name: Build StackChan Firmware
 
 on:
   workflow_dispatch:
@@ -9,29 +9,28 @@ jobs:
     container: espressif/idf:latest 
 
     steps:
-      - name: Pobieranie repozytorium
+      - name: Pobieranie kodu
         uses: actions/checkout@v4
         with:
           submodules: recursive 
 
-      - name: Przygotowanie srodowiska i kompilacja
+      - name: Obejscie bledu (lokalne pobranie ArduinoJson)
+        run: |
+          # Tworzymy folder na wlasne komponenty ESP-IDF
+          mkdir -p firmware/components
+          
+          # Pobieramy biblioteke bezposrednio z GitHuba, omijajac uszkodzony menedzer pakietow
+          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
+
+      - name: Kompilacja Firmware'u
         run: |
           . /opt/esp/idf/export.sh
-          
           cd firmware 
           
-          # Tworzymy folder main jesli z jakiegos powodu system operuje gdzies indziej
-          mkdir -p main
+          # Usuwamy plik blokady menedzera pakietow, by nie szukal starych wpisow
+          rm -f dependencies.lock
           
-          # Wymuszamy dodanie paczki do manifestu glownego komponentu przed konfiguracja
-          cd main
-          idf.py add-dependency "bblanchon/ArduinoJson^7.0.4"
-          cd ..
-          
-          # Teraz mozna bezpiecznie ustawic target
           idf.py set-target esp32s3
-          
-          # Uruchamiamy kompilacje
           idf.py build
 
       - name: Udostepnienie gotowego pliku
