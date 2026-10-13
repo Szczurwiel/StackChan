@@ -11,56 +11,7 @@ jobs:
     steps:
       - name: Pobieranie kodu
         uses: actions/checkout@v4
-        with:name: Build StackChan Firmware
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: espressif/idf:latest 
-
-    steps:
-      - name: Pobieranie kodu
-        uses: actions/checkout@v4
         with:
-          submodules: recursive 
-
-      - name: Przygotowanie brakujacych komponentow autorskich (lokalnie)
-        run: |
-          mkdir -p firmware/components
-          rm -rf firmware/components/*
-          
-          git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
-          git clone --depth 1 https://github.com/espressif/esp-now.git firmware/components/esp-now
-          
-          git clone --depth 1 https://github.com/Forairaaaaa/mooncake.git firmware/components/mooncake
-          git clone --depth 1 https://github.com/Forairaaaaa/smooth_ui_toolkit.git firmware/components/smooth_ui_toolkit
-          git clone --depth 1 https://github.com/Forairaaaaa/mooncake_log.git firmware/components/mooncake_log
-
-          find . -name "dependencies.lock" -type f -delete
-
-      - name: Uzupelnianie podstawowych braku rdzenia (MQTT / ESP-IDF 6.0)
-        run: |
-          . /opt/esp/idf/export.sh
-          cd firmware 
-          
-          # Oficjalne pakiety z nowymi nazwami dla ESP-IDF v6
-          idf.py add-dependency "espressif/mqtt^1.0.0"
-          idf.py add-dependency "espressif/cjson^1.7.17"
-          
-          idf.py set-target esp32s3
-          idf.py build
-
-      - name: Udostepnienie gotowego pliku
-        uses: actions/upload-artifact@v4
-        with:
-          name: StackChan-CoreS3-Firmware
-          path: |
-            firmware/build/*.bin
-            firmware/build/bootloader/*.bin
-            firmware/build/partition_table/*.bin
           submodules: recursive 
 
       - name: Przygotowanie brakujacych komponentow autorskich (lokalnie)
