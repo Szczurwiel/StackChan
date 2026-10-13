@@ -9,29 +9,24 @@ jobs:
     container: espressif/idf:latest 
 
     steps:
-      - name: Pobieranie repozytorium
+      - name: Pobieranie kodu
         uses: actions/checkout@v4
         with:
           submodules: recursive 
 
-      - name: Przygotowanie niezaleznych komponentow (Brute Force)
+      - name: Przygotowanie brakujacych komponentow
         run: |
           mkdir -p firmware/components
-          
-          # Usuwamy oryginalne (byc moze uszkodzone) wiazania submodules
           rm -rf firmware/components/*
           
-          # Pobieramy to, czego szukal CMake i wywalal bledy
           git clone --depth 1 https://github.com/bblanchon/ArduinoJson.git firmware/components/ArduinoJson
           git clone --depth 1 https://github.com/espressif/esp-now.git firmware/components/esp-now
           
-          # Tu pojawil sie blad z ostatniej proby - zrodlo autorskiego Mooncake'a 
-          git clone https://github.com/m5stack/mooncake.git firmware/components/mooncake
-          
-          # Pobieramy dodatkowe frameworki UI od twórcow, by uprzedzic nastepny ewentualny blad
-          git clone https://github.com/m5stack/smooth_ui_toolkit.git firmware/components/smooth_ui_toolkit
+          # Poprawione adresy repozytoriow autora (Forairaaaaa)
+          git clone --depth 1 https://github.com/Forairaaaaa/mooncake.git firmware/components/mooncake
+          git clone --depth 1 https://github.com/Forairaaaaa/smooth_ui_toolkit.git firmware/components/smooth_ui_toolkit
+          git clone --depth 1 https://github.com/Forairaaaaa/mooncake_log.git firmware/components/mooncake_log
 
-          # Kasowanie lockow
           find . -name "dependencies.lock" -type f -delete
 
       - name: Kompilacja Firmware'u
