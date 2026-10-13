@@ -1,0 +1,37 @@
+name: Build StackChan ESP-IDF
+
+on:
+  workflow_dispatch: # To pozwala na ręczne uruchomienie przyciskiem "Run workflow"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Używamy oficjalnego kontenera Espressif (CoreS3 to układ ESP32-S3)
+    container: espressif/idf:release-v5.0 
+
+    steps:
+      - name: Pobieranie repozytorium
+        uses: actions/checkout@v4
+        with:
+          # BARDZO WAŻNE: M5Stack uzywa zewnetrznych bibliotek (Mooncake, LVGL), to pobierze je wszystkie
+          submodules: recursive 
+
+      - name: Kompilacja Firmware'u
+        run: |
+          . /opt/esp/idf/export.sh
+          
+          # Przechodzimy do folderu z plikiem CMakeLists.txt (zakładamy folder firmware)
+          cd firmware 
+          
+          # Ustawiamy układ na CoreS3 (ESP32-S3) i budujemy
+          idf.py set-target esp32s3
+          idf.py build
+
+      - name: Udostepnienie gotowego pliku
+        uses: actions/upload-artifact@v4
+        with:
+          name: StackChan-CoreS3-Firmware
+          path: |
+            firmware/build/*.bin
+            firmware/build/bootloader/*.bin
+            firmware/build/partition_table/*.bin
