@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # Używamy oficjalnego kontenera Espressif (CoreS3 to układ ESP32-S3)
-    container: espressif/idf:release-v5.0 
+    container: espressif/idf:latest 
 
     steps:
       - name: Pobieranie repozytorium
